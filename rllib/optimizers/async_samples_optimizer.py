@@ -125,8 +125,8 @@ class AsyncSamplesOptimizer(PolicyOptimizer):
 
     @override(PolicyOptimizer)
     def step(self):
-        if len(self.workers.remote_workers()) == 0:
-            raise ValueError("Config num_workers=0 means training will hang!")
+        # if len(self.workers.remote_workers()) == 0:
+        #     raise ValueError("Config num_workers=0 means training will hang!")
         assert self.learner.is_alive()
         with self._optimizer_step_timer:
             sample_timesteps, train_timesteps = self._step()
