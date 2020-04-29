@@ -162,7 +162,7 @@ class OverrideDefaultResourceRequest:
 
 
 SeedTrainer = build_trainer(
-    name="IMPALA",
+    name="SEED",
     default_config=DEFAULT_CONFIG,
     default_policy=VTraceTFPolicy,
     validate_config=validate_config,
