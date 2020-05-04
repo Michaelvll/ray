@@ -46,7 +46,7 @@ class RemoteVectorEnv(BaseEnv):
         ready = []
 
         # Wait for at least 1 env to be ready here
-        while not ready and len(ready) < self.remote_env_poll_size:
+        while len(ready) < self.remote_env_poll_size:
             ready, _ = ray.wait(
                 list(self.pending),
                 num_returns=len(self.pending),

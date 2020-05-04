@@ -15,7 +15,9 @@ tune.run(PPOTrainer, config={"env": "BreakoutNoFrameskip-v4",
                               "num_sgd_iter": 1,
                               "clip_rewards": True,
                               "vf_share_layers": True,
-                              "grad_clip": True
-                              })  # "log_level": "INFO" for verbose,
+                              "grad_clip": True,
+
+                              "log_level": "INFO" # for verbose
+                              })  
 # "eager": True for eager execution,
 # "torch": True for PyTorch
