@@ -254,6 +254,8 @@ COMMON_CONFIG = {
     # but optimal value could be obtained by measuring your environment
     # step / reset and model inference perf.
     "remote_env_batch_wait_ms": 0,
+    # Number of envirnments polled by the remote workers.
+    "remote_env_poll_size": 1,
     # Minimum time per train iteration (frequency of metrics reporting).
     "min_iter_time_s": 0,
     # Minimum env steps to optimize for per train call. This value does

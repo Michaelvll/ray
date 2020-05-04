@@ -16,11 +16,12 @@ class RemoteVectorEnv(BaseEnv):
     """
 
     def __init__(self, make_env, num_envs, multiagent,
-                 remote_env_batch_wait_ms):
+                 remote_env_batch_wait_ms, remote_env_poll_size=1):
         self.make_local_env = make_env
         self.num_envs = num_envs
         self.multiagent = multiagent
         self.poll_timeout = remote_env_batch_wait_ms / 1000
+        self.remote_env_poll_size = remote_env_poll_size
 
         self.actors = None  # lazy init
         self.pending = None  # lazy init
@@ -45,7 +46,7 @@ class RemoteVectorEnv(BaseEnv):
         ready = []
 
         # Wait for at least 1 env to be ready here
-        while not ready:
+        while not ready and len(ready) < self.remote_env_poll_size:
             ready, _ = ray.wait(
                 list(self.pending),
                 num_returns=len(self.pending),

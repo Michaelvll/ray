@@ -145,6 +145,7 @@ class RolloutWorker(EvaluatorInterface, ParallelIteratorWorker):
                  output_creator=lambda ioctx: NoopOutput(),
                  remote_worker_envs=False,
                  remote_env_batch_wait_ms=0,
+                 remote_env_poll_size=1,
                  soft_horizon=False,
                  no_done_at_end=False,
                  seed=None,
@@ -237,6 +238,8 @@ class RolloutWorker(EvaluatorInterface, ParallelIteratorWorker):
                 least one env is ready) is a reasonable default, but optimal
                 value could be obtained by measuring your environment
                 step / reset and model inference perf.
+            remote_env_poll_size (int): Number of environments polled by 
+                remote workers.
             soft_horizon (bool): Calculate rewards but don't reset the
                 environment when the horizon is hit.
             no_done_at_end (bool): Ignore the done=True at the end of the
@@ -418,7 +421,8 @@ class RolloutWorker(EvaluatorInterface, ParallelIteratorWorker):
             make_env=make_env,
             num_envs=num_envs,
             remote_envs=remote_worker_envs,
-            remote_env_batch_wait_ms=remote_env_batch_wait_ms)
+            remote_env_batch_wait_ms=remote_env_batch_wait_ms,
+            remote_env_poll_size=remote_env_poll_size)
         self.num_envs = num_envs
 
         if self.batch_mode == "truncate_episodes":

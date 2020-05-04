@@ -275,6 +275,7 @@ class WorkerSet:
             output_creator=output_creator,
             remote_worker_envs=config["remote_worker_envs"],
             remote_env_batch_wait_ms=config["remote_env_batch_wait_ms"],
+            remote_env_poll_size=config["remote_env_poll_size"],
             soft_horizon=config["soft_horizon"],
             no_done_at_end=config["no_done_at_end"],
             seed=(config["seed"] + worker_index)
