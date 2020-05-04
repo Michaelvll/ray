@@ -4,8 +4,8 @@ import os
 
 import ray
 
-FREE_DELAY_S = 1.0
-MAX_FREE_QUEUE_SIZE = 1
+FREE_DELAY_S = 10.0
+MAX_FREE_QUEUE_SIZE = 100
 _last_free_time = 0.0
 _to_free = []
 
