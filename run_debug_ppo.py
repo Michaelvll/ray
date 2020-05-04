@@ -3,11 +3,11 @@ from ray.rllib.agents.ppo import PPOTrainer
 tune.run(PPOTrainer, config={"env": "BreakoutNoFrameskip-v4",
                               # Configs for Resources
                               "num_gpus": 0,
-                              "num_workers": 4,
-                              "num_envs_per_worker": 1,
-                              "num_cpus_per_worker": 1,
+                              "num_workers": 2,
+                              "num_envs_per_worker": 2,
+                              "num_cpus_per_worker": 2,
                               "num_gpus_per_worker": 0,
-                            #   "remote_worker_envs": True,
+                              "remote_worker_envs": True,
                               # Training settings
                               "rollout_fragment_length": 50,
                               "train_batch_size": 500,
