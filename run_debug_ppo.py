@@ -7,7 +7,7 @@ tune.run(PPOTrainer, config={"env": "BreakoutNoFrameskip-v4",
                               "num_envs_per_worker": 4,
                               "num_cpus_per_worker": 4,
                               "num_gpus_per_worker": 0,
-                            #   "remote_worker_envs": True,
+                              "remote_worker_envs": True,
                               # Training settings
                               "rollout_fragment_length": 50,
                               "train_batch_size": 500,
