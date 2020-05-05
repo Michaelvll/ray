@@ -21,6 +21,7 @@ class RemoteVectorEnv(BaseEnv):
         self.num_envs = num_envs
         self.multiagent = multiagent
         self.poll_timeout = remote_env_batch_wait_ms / 1000
+        assert remote_env_poll_size <= num_envs
         self.remote_env_poll_size = remote_env_poll_size
 
         self.actors = None  # lazy init
