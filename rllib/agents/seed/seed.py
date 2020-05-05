@@ -1,5 +1,5 @@
 from ray.rllib.agents.a3c.a3c_tf_policy import A3CTFPolicy
-from ray.rllib.agents.seed.vtrace_policy import VTraceTFPolicy
+from ray.rllib.agents.impala.vtrace_policy import VTraceTFPolicy
 from ray.rllib.agents.trainer import Trainer, with_common_config
 from ray.rllib.agents.trainer_template import build_trainer
 from ray.rllib.optimizers import LocalMultiGPUOptimizer, SyncSamplesOptimizer
@@ -101,7 +101,7 @@ def choose_policy_optimizer(workers, config):
             num_sgd_iter=config["num_sgd_iter"],
             train_batch_size=config["train_batch_size"],
             sgd_minibatch_size=config["sgd_minibatch_size"],
-            standardize_fields=["advantages"])
+            standardize_fields=[])
 
     return LocalMultiGPUOptimizer(
         workers,
@@ -111,7 +111,7 @@ def choose_policy_optimizer(workers, config):
         rollout_fragment_length=config["rollout_fragment_length"],
         num_envs_per_worker=config["num_envs_per_worker"],
         train_batch_size=config["train_batch_size"],
-        standardize_fields=["advantages"],
+        standardize_fields=[],
         shuffle_sequences=config["shuffle_sequences"],
         _fake_gpus=config["_fake_gpus"])
 
