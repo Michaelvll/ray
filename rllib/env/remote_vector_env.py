@@ -86,7 +86,7 @@ class RemoteVectorEnv(BaseEnv):
                 actor.__ray_terminate__.remote()
 
 
-@ray.remote(num_cpus=0)
+@ray.remote(num_cpus=1)
 class _RemoteMultiAgentEnv:
     """Wrapper class for making a multi-agent env a remote actor."""
 
@@ -105,7 +105,7 @@ class _RemoteMultiAgentEnv:
         return self.env.step(action_dict)
 
 
-@ray.remote(num_cpus=0)
+@ray.remote(num_cpus=1)
 class _RemoteSingleAgentEnv:
     """Wrapper class for making a gym env a remote actor."""
 
