@@ -1,4 +1,5 @@
 import logging
+import time
 import math
 import numpy as np
 from collections import defaultdict
@@ -69,6 +70,10 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
                 machines).
         """
         PolicyOptimizer.__init__(self, workers)
+
+        self._stats_start_time = time.time()
+        self._last_stats_time = {}
+        self._last_stats_sum = {}
 
         self.batch_size = sgd_batch_size
         self.num_sgd_iter = num_sgd_iter
@@ -215,15 +220,22 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
                     logger.debug("{} {}".format(i,
                                                 averaged(iter_extra_fetches)))
                 fetches[policy_id] = averaged(iter_extra_fetches)
+        
+        sample_timesteps = samples.count
+        train_timesteps = tuples_per_device * len(self.devices)
+        if sample_timesteps > 0:
+            self.add_stat_val("sample_throughput", sample_timesteps)
+        if train_timesteps > 0:
+            self.add_stat_val("train_throughput", train_timesteps)
 
-        self.num_steps_sampled += samples.count
-        self.num_steps_trained += tuples_per_device * len(self.devices)
+        self.num_steps_sampled += sample_timesteps
+        self.num_steps_trained += train_timesteps
         self.learner_stats = fetches
         return fetches
 
     @override(PolicyOptimizer)
     def stats(self):
-        return dict(
+        stats = dict(
             PolicyOptimizer.stats(self), **{
                 "sample_time_ms": round(1000 * self.sample_timer.mean, 3),
                 "load_time_ms": round(1000 * self.load_timer.mean, 3),
@@ -232,3 +244,24 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
                                         3),
                 "learner": self.learner_stats,
             })
+        stats.update(self.get_mean_stats_and_reset())
+        return stats
+
+    def add_stat_val(self, key, val):
+        if key not in self._last_stats_sum:
+            self._last_stats_sum[key] = 0
+            self._last_stats_time[key] = self._stats_start_time
+        self._last_stats_sum[key] += val
+
+    def get_mean_stats_and_reset(self):
+        now = time.time()
+        mean_stats = {
+            key: round(val / (now - self._last_stats_time[key]), 3)
+            for key, val in self._last_stats_sum.items()
+        }
+
+        for key in self._last_stats_sum.keys():
+            self._last_stats_sum[key] = 0
+            self._last_stats_time[key] = time.time()
+
+        return mean_stats
