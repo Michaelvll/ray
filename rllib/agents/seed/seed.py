@@ -30,7 +30,7 @@ DEFAULT_CONFIG = with_common_config({
     "train_batch_size": 500,
     # Total SGD batch size across all devices for SGD. This defines the
     # minibatch size within each epoch.
-    "sgd_minibatch_size": 500,
+    "sgd_minibatch_size": 600,
     # Whether to shuffle sequences in the batch when training (recommended).
     "shuffle_sequences": False,
     "min_iter_time_s": 10,
