@@ -30,7 +30,7 @@ DEFAULT_CONFIG = with_common_config({
     "train_batch_size": 500,
     # Total SGD batch size across all devices for SGD. This defines the
     # minibatch size within each epoch.
-    "sgd_minibatch_size": 600,
+    "sgd_minibatch_size": 500,
     # Whether to shuffle sequences in the batch when training (recommended).
     "shuffle_sequences": False,
     "min_iter_time_s": 10,
@@ -40,7 +40,7 @@ DEFAULT_CONFIG = with_common_config({
     # Number of environments to evaluate vectorwise per worker. This enables
     # model inference batching, which can improve performance for inference
     # bottlenecked workloads.
-    "num_envs_per_worker": 4,
+    "num_envs_per_worker": 5,
     # number of passes to make over each train batch
     "num_sgd_iter": 1,
 
