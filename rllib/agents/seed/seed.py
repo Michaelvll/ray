@@ -1,5 +1,5 @@
 from ray.rllib.agents.a3c.a3c_tf_policy import A3CTFPolicy
-from ray.rllib.agents.impala.vtrace_policy import VTraceTFPolicy
+from ray.rllib.agents.impala.vtrace_tf_policy import VTraceTFPolicy
 from ray.rllib.agents.trainer import Trainer, with_common_config
 from ray.rllib.agents.trainer_template import build_trainer
 from ray.rllib.optimizers import LocalMultiGPUOptimizer, SyncSamplesOptimizer

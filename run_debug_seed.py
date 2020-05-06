@@ -7,9 +7,9 @@ tune.run(SeedTrainer, config={"env": "BreakoutNoFrameskip-v4",
                               "num_envs_per_worker": 4,
                               "num_cpus_per_worker": 4,
                               "num_gpus_per_worker": 0,
-                            #   "remote_worker_envs": True,
-                            #   "sample_async": True,
-                              "log_level": "INFO" # for verbose
+                              "remote_worker_envs": True,
+                              "sample_async": True,
+                            #   "log_level": "INFO" # for verbose
                             })  # "log_level": "INFO" for verbose,
 # "eager": True for eager execution,
 # "torch": True for PyTorch
