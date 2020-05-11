@@ -364,7 +364,7 @@ def _env_runner(worker, base_env, extra_batch_callback, policies,
 
         # Do batched policy eval
         t2 = time.time()
-        # TODO (zhwu): Eval until the to_evail[policy_id] has more than inference batch
+        # TODO (zhwu): Eval until the to_eval[policy_id] has more than inference batch
         eval_results = _do_policy_eval(tf_sess, to_eval, policies,
                                        active_episodes)
         perf_stats.inference_time += time.time() - t2
