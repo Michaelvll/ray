@@ -8,8 +8,13 @@ tune.run(SeedTrainer, config={"env": "BreakoutNoFrameskip-v4",
                               "num_cpus_per_worker": 5,
                               "num_gpus_per_worker": 0,
                               "remote_env_poll_size": 2,
-                              # "remote_worker_envs": True,
+                              "remote_worker_envs": True,
                               "sample_async": True,
+                              "local_tf_session_args": {
+                                "device_count": {
+                                  "GPU": 1
+                                },
+                              },
                             #   "log_level": "INFO" # for verbose
                             })  # "log_level": "INFO" for verbose,
 # "eager": True for eager execution,
