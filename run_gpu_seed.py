@@ -11,7 +11,10 @@ tune.run(SeedTrainer, config={"env": "BreakoutNoFrameskip-v4",
                               "remote_worker_envs": True,
                               "sample_async": True,
                               "local_tf_session_args": {
+                                "intra_op_parallelism_threads": 2,
+                                "inter_op_parallelism_threads": 5,
                                 "device_count": {
+                                  "CPU": 1,
                                   "GPU": 1
                                 },
                               },
