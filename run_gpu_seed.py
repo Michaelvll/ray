@@ -18,10 +18,10 @@ tune.run(SeedTrainer, config={"env": "BreakoutNoFrameskip-v4",
                                   "GPU": 1
                                 },
                               },
-                              "eager": True,
+                              # "eager": True,
                             #   "log_level": "INFO" # for verbose
                             })  # "log_level": "INFO" for verbose,
 # "eager": True for eager execution,
 # "torch": True for PyTorch
 
-# TODO: test eager mode/ test tf.device
+# TODO: test tf.device
