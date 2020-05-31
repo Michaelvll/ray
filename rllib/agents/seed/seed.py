@@ -73,7 +73,9 @@ DEFAULT_CONFIG = with_common_config({
     # Set this to True for debugging on non-GPU machines (set `num_gpus` > 0).
     "_fake_gpus": False,
     # Use PyTorch as framework?
-    "use_pytorch": False
+    "use_pytorch": False,
+
+    'async_eval': False
 })
 # __sphinx_doc_end__
 # yapf: enable

@@ -27,7 +27,7 @@ class RemoteVectorEnv(BaseEnv):
         self.actors = None  # lazy init
         self.pending = None  # lazy init
 
-    def poll(self):
+    def poll(self, async_poll=False):
         if self.actors is None:
 
             def make_remote_env(i):
@@ -52,6 +52,7 @@ class RemoteVectorEnv(BaseEnv):
                 list(self.pending),
                 num_returns=len(self.pending),
                 timeout=self.poll_timeout)
+            if async_poll: break
 
         # Get and return observations for each of the ready envs
         env_ids = set()

@@ -21,6 +21,9 @@ from ray.rllib.utils.debug import summarize
 from ray.rllib.utils.tf_run_builder import TFRunBuilder
 from ray.rllib.utils.space_utils import flatten_to_single_ndarray
 
+import ray
+from ray.rllib.utils.memory import ray_get_and_free
+
 tree = try_import_tree()
 
 logger = logging.getLogger(__name__)
@@ -239,7 +242,7 @@ def _env_runner(worker, base_env, extra_batch_callback, policies,
                 policy_mapping_fn, rollout_fragment_length, horizon,
                 preprocessors, obs_filters, clip_rewards, clip_actions, pack,
                 callbacks, tf_sess, perf_stats, soft_horizon, no_done_at_end,
-                observation_fn):
+                observation_fn, async_eval=False):
     """This implements the common experience collection logic.
 
     Args:
@@ -338,12 +341,14 @@ def _env_runner(worker, base_env, extra_batch_callback, policies,
 
     active_episodes = defaultdict(new_episode)
 
+    if async_eval:
+        evaluator = AsyncPolicyEval(tf_sess)
     while True:
         perf_stats.iters += 1
         t0 = time.time()
         # Get observations from all ready agents
         unfiltered_obs, rewards, dones, infos, off_policy_actions = \
-            base_env.poll()
+            base_env.poll(async_eval)
         perf_stats.env_wait_time += time.time() - t0
 
         if log_once("env_returns"):
@@ -351,21 +356,26 @@ def _env_runner(worker, base_env, extra_batch_callback, policies,
                 summarize(unfiltered_obs)))
             logger.info("Info return from env: {}".format(summarize(infos)))
 
-        # Process observations and prepare for policy evaluation
-        t1 = time.time()
-        active_envs, to_eval, outputs = _process_observations(
-            worker, base_env, policies, batch_builder_pool, active_episodes,
-            unfiltered_obs, rewards, dones, infos, off_policy_actions, horizon,
-            preprocessors, obs_filters, rollout_fragment_length, pack,
-            callbacks, soft_horizon, no_done_at_end, observation_fn)
-        perf_stats.processing_time += time.time() - t1
-        for o in outputs:
-            yield o
+        if unfiltered_obs or not async_eval:
+            # Process observations and prepare for policy evaluation
+            t1 = time.time()
+            active_envs, to_eval, outputs = _process_observations(
+                worker, base_env, policies, batch_builder_pool, active_episodes,
+                unfiltered_obs, rewards, dones, infos, off_policy_actions, horizon,
+                preprocessors, obs_filters, rollout_fragment_length, pack,
+                callbacks, soft_horizon, no_done_at_end, observation_fn)
+            perf_stats.processing_time += time.time() - t1
+            for o in outputs:
+                yield o
 
         # Do batched policy eval
         t2 = time.time()
-        # TODO (zhwu): Eval until the to_eval[policy_id] has more than inference batch
-        eval_results = _do_policy_eval(tf_sess, to_eval, policies,
+        # TODO (zhwu): Do eval asynchronizely
+        if async_eval:
+            to_eval = to_eval if unfiltered_obs else None
+            to_eval, eval_results = evaluator.do_policy_eval(to_eval, policies, active_episodes)
+        else:
+            eval_results = _do_policy_eval(tf_sess, to_eval, policies,
                                         active_episodes)
         perf_stats.inference_time += time.time() - t2
 
@@ -647,6 +657,48 @@ def _do_policy_eval(tf_sess, to_eval, policies, active_episodes):
 
     return eval_results
 
+
+class AsyncPolicyEval:
+    def __init__(self, tf_sess):
+        super().__init__()
+        self.tf_sess = tf_sess
+        self.pendings = {}
+        self.actors = []
+        self.to_eval = {}
+    
+    def do_policy_eval(self, to_eval:dict, policies, active_episodes):
+        if not self.actors:
+            self.actors.append(PolicyEvaluator.remote(self.tf_sess))
+        if to_eval:
+            self.to_eval.update(to_eval)
+            actor = self.actors.pop()
+            pending = actor.eval.remote(to_eval, policies, active_episodes)
+            self.pendings[pending] = actor
+
+        ready = []
+        ready, _ = ray.wait(
+            list(self.pending),
+            num_returns=len(self.pendings),
+            timeout=1)
+        
+        results = {}
+        for obj_id in ready:
+            actor = self.pendings.pop(obj_id)
+            self.actors.append(actor)
+            eval_result = ray_get_and_free(obj_id)
+            results.update(eval_result)
+        to_eval = {key: self.to_eval[key] for key in results.keys()}
+        return to_eval, results
+
+
+
+@ray.remote(num_cpus=0)
+class PolicyEvaluator(object):
+    def __init__(self):
+        super().__init__()
+    
+    def eval(self, tf_sess, to_eval, policies, active_episodes):
+        return _do_policy_eval(tf_sess, to_eval, policies, active_episodes)
 
 def _process_policy_eval_results(to_eval, eval_results, active_episodes,
                                  active_envs, off_policy_actions, policies,

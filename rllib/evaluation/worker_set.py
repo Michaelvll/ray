@@ -281,6 +281,7 @@ class WorkerSet:
             seed=(config["seed"] + worker_index)
             if config["seed"] is not None else None,
             _fake_sampler=config.get("_fake_sampler", False),
-            extra_python_environs=extra_python_environs)
+            extra_python_environs=extra_python_environs,
+            async_eval=config.get('async_eval', False))
 
         return worker

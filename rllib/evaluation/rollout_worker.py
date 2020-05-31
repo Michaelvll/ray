@@ -150,6 +150,7 @@ class RolloutWorker(EvaluatorInterface, ParallelIteratorWorker):
                  no_done_at_end=False,
                  seed=None,
                  extra_python_environs=None,
+                 async_eval=False,
                  _fake_sampler=False):
         """Initialize a rollout worker.
 
@@ -471,7 +472,8 @@ class RolloutWorker(EvaluatorInterface, ParallelIteratorWorker):
                 blackhole_outputs="simulation" in input_evaluation,
                 soft_horizon=soft_horizon,
                 no_done_at_end=no_done_at_end,
-                observation_fn=observation_fn)
+                observation_fn=observation_fn,
+                async_eval=async_eval)
             self.sampler.start()
         else:
             self.sampler = SyncSampler(
