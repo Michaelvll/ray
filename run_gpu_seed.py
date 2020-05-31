@@ -13,6 +13,8 @@ tune.run(SeedTrainer, config={"env": "BreakoutNoFrameskip-v4",
                               "sample_async": True,
                               # "eager": True,
                             #   "log_level": "INFO" # for verbose
-                            })  # "log_level": "INFO" for verbose,
+                            },
+                            local_dir="/data/ray_results"
+                            )  # "log_level": "INFO" for verbose,
 # "eager": True for eager execution,
 # "torch": True for PyTorch
