@@ -145,7 +145,8 @@ class AsyncSampler(threading.Thread, SamplerInput):
                  blackhole_outputs=False,
                  soft_horizon=False,
                  no_done_at_end=False,
-                 observation_fn=None):
+                 observation_fn=None,
+                 async_eval=False):
         for _, f in obs_filters.items():
             assert getattr(f, "is_concurrent", False), \
                 "Observation Filter must support concurrent updates."
@@ -174,6 +175,7 @@ class AsyncSampler(threading.Thread, SamplerInput):
         self.perf_stats = PerfStats()
         self.shutdown = False
         self.observation_fn = observation_fn
+        self.async_eval = async_eval
 
     def run(self):
         try:
@@ -196,7 +198,7 @@ class AsyncSampler(threading.Thread, SamplerInput):
             self.preprocessors, self.obs_filters, self.clip_rewards,
             self.clip_actions, self.pack, self.callbacks, self.tf_sess,
             self.perf_stats, self.soft_horizon, self.no_done_at_end,
-            self.observation_fn)
+            self.observation_fn, self.async_eval)
         while not self.shutdown:
             # The timeout variable exists because apparently, if one worker
             # dies, the other workers won't die with it, unless the timeout is
