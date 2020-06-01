@@ -251,6 +251,8 @@ class RolloutWorker(EvaluatorInterface, ParallelIteratorWorker):
                 be set.
             _fake_sampler (bool): Use a fake (inf speed) sampler for testing.
         """
+        # TODO (zhwu): Move the initialization of policies to AsyncEvaluator for async_eval purpose
+
         self._original_kwargs = locals().copy()
         del self._original_kwargs["self"]
 

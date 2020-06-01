@@ -380,19 +380,20 @@ def _env_runner(worker, base_env, extra_batch_callback, policies,
             eval_results = _do_policy_eval(tf_sess, to_eval, policies,
                                         active_episodes)
         perf_stats.inference_time += time.time() - t2
+        
+        if to_eval:
+            # Process results and update episode state
+            t3 = time.time()
+            actions_to_send = _process_policy_eval_results(
+                to_eval, eval_results, active_episodes, active_envs,
+                off_policy_actions, policies, clip_actions)
+            perf_stats.processing_time += time.time() - t3
 
-        # Process results and update episode state
-        t3 = time.time()
-        actions_to_send = _process_policy_eval_results(
-            to_eval, eval_results, active_episodes, active_envs,
-            off_policy_actions, policies, clip_actions)
-        perf_stats.processing_time += time.time() - t3
-
-        # Return computed actions to ready envs. We also send to envs that have
-        # taken off-policy actions; those envs are free to ignore the action.
-        t4 = time.time()
-        base_env.send_actions(actions_to_send)
-        perf_stats.env_wait_time += time.time() - t4
+            # Return computed actions to ready envs. We also send to envs that have
+            # taken off-policy actions; those envs are free to ignore the action.
+            t4 = time.time()
+            base_env.send_actions(actions_to_send)
+            perf_stats.env_wait_time += time.time() - t4
 
 
 def _process_observations(
@@ -670,7 +671,7 @@ class AsyncPolicyEval:
     
     def do_policy_eval(self, to_eval:dict, policies, active_episodes):
         if not self.actors:
-            self.actors.append(PolicyEvaluator.remote(self.tf_sess))
+            self.actors.append(PolicyEvaluator.remote())
         if to_eval:
             self.to_eval.update(to_eval)
             actor = self.actors.pop()
@@ -679,7 +680,7 @@ class AsyncPolicyEval:
 
         ready = []
         ready, _ = ray.wait(
-            list(self.pending),
+            list(self.pendings),
             num_returns=len(self.pendings),
             timeout=1)
         
@@ -699,8 +700,8 @@ class PolicyEvaluator(object):
     def __init__(self):
         super().__init__()
     
-    def eval(self, tf_sess, to_eval, policies, active_episodes):
-        return _do_policy_eval(tf_sess, to_eval, policies, active_episodes)
+    def eval(self, to_eval, policies, active_episodes):
+        return _do_policy_eval(None, to_eval, policies, active_episodes)
 
 def _process_policy_eval_results(to_eval, eval_results, active_episodes,
                                  active_envs, off_policy_actions, policies,
