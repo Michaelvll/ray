@@ -433,6 +433,7 @@ def _process_observations(
             hit_horizon = (episode.length >= horizon
                            and not dones[env_id]["__all__"])
             all_done = True
+            # TODO (zhwu): This one may be wrong for the remote_envs
             atari_metrics = _fetch_atari_metrics(base_env)
             if atari_metrics is not None:
                 for m in atari_metrics:
@@ -716,6 +717,9 @@ def _fetch_atari_metrics(base_env):
     However for metrics reporting we count full episodes all lives included.
     """
     unwrapped = base_env.get_unwrapped()
+    if hasattr(base_env, 'fetch_atari_metrics'):
+        atari_out = base_env.fetch_atari_metrics()
+        return atari_out
     if not unwrapped:
         return None
     atari_out = []

@@ -2,6 +2,8 @@ import logging
 
 import ray
 from ray.rllib.env.base_env import BaseEnv, _DUMMY_AGENT_ID, ASYNC_RESET_RETURN
+from ray.rllib.evaluation.rollout_metrics import RolloutMetrics
+from ray.rllib.env.atari_wrappers import get_wrapper_by_cls, MonitorEnv
 from ray.rllib.utils.memory import ray_get_and_free
 
 logger = logging.getLogger(__name__)
@@ -85,6 +87,19 @@ class RemoteVectorEnv(BaseEnv):
             for actor in self.actors:
                 actor.__ray_terminate__.remote()
 
+    def fetch_atari_metrics(self):
+        waits = [a.fetch_atari_metrics.remote() for a in self.actors]
+        atari_out = []
+        while waits:
+            ready, waits = ray.wait(
+                waits,
+                num_returns=len(waits),
+                timeout=0
+            )
+            for obj_id in ready:
+                atari_out.extend(ray_get_and_free(obj_id))
+        return atari_out
+
 
 @ray.remote(num_cpus=0)
 class _RemoteMultiAgentEnv:
@@ -126,3 +141,12 @@ class _RemoteSingleAgentEnv:
         } for x in [obs, rew, done, info]]
         done["__all__"] = done[_DUMMY_AGENT_ID]
         return obs, rew, done, info
+
+    def fetch_atari_metrics(self):
+        atari_out = []
+        monitor = get_wrapper_by_cls(self.env, MonitorEnv)
+        if not monitor:
+            return None
+        for eps_rew, eps_len in monitor.next_episode_results():
+            atari_out.append(RolloutMetrics(eps_len, eps_rew))
+        return atari_out
