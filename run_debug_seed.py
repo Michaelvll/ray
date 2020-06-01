@@ -10,8 +10,8 @@ tune.run(SeedTrainer, config={"env": "BreakoutNoFrameskip-v4",
                               "remote_env_poll_size": 2,
                               "remote_worker_envs": True,
                               "remote_env_batch_wait_ms": 0,
-                              "async_eval": True
-                              # "sample_async": True,
+                              "async_eval": True,
+                              "sample_async": True,
                             #   "log_level": "INFO" # for verbose
                             })  # "log_level": "INFO" for verbose,
 # "eager": True for eager execution,
