@@ -433,7 +433,7 @@ def _process_observations(
             hit_horizon = (episode.length >= horizon
                            and not dones[env_id]["__all__"])
             all_done = True
-            # TODO (zhwu): This one may be wrong for the remote_envs
+            # [FIXED] TODO (zhwu): This one may be wrong for the remote_envs
             atari_metrics = _fetch_atari_metrics(base_env)
             if atari_metrics is not None:
                 for m in atari_metrics:
