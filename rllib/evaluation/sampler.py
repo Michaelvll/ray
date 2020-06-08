@@ -717,9 +717,9 @@ def _fetch_atari_metrics(base_env):
     However for metrics reporting we count full episodes all lives included.
     """
     unwrapped = base_env.get_unwrapped()
-    if hasattr(base_env, 'fetch_atari_metrics'):
-        atari_out = base_env.fetch_atari_metrics()
-        return atari_out
+    # if hasattr(base_env, 'fetch_atari_metrics'):
+    #     atari_out = base_env.fetch_atari_metrics()
+    #     return atari_out
     if not unwrapped:
         return None
     atari_out = []
