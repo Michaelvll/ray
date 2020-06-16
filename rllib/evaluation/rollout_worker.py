@@ -150,7 +150,8 @@ class RolloutWorker(EvaluatorInterface, ParallelIteratorWorker):
                  no_done_at_end=False,
                  seed=None,
                  extra_python_environs=None,
-                 _fake_sampler=False):
+                 _fake_sampler=False,
+                 sample_max_steps=0):
         """Initialize a rollout worker.
 
         Arguments:
@@ -298,7 +299,8 @@ class RolloutWorker(EvaluatorInterface, ParallelIteratorWorker):
         if not callable(policy_mapping_fn):
             raise ValueError("Policy mapping function not callable?")
         self.env_creator = env_creator
-        self.rollout_fragment_length = rollout_fragment_length * num_envs
+        self.rollout_fragment_length = rollout_fragment_length * num_envs \
+            if sample_max_steps == 0 else sample_max_steps
         self.batch_mode = batch_mode
         self.compress_observations = compress_observations
         self.preprocessing_enabled = True

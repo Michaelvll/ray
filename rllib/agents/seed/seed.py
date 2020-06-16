@@ -73,7 +73,9 @@ DEFAULT_CONFIG = with_common_config({
     # Set this to True for debugging on non-GPU machines (set `num_gpus` > 0).
     "_fake_gpus": False,
     # Use PyTorch as framework?
-    "use_pytorch": False
+    "use_pytorch": False,
+
+    "sample_max_steps": 0
 })
 # __sphinx_doc_end__
 # yapf: enable
@@ -113,7 +115,8 @@ def choose_policy_optimizer(workers, config):
         train_batch_size=config["train_batch_size"],
         standardize_fields=[],
         shuffle_sequences=config["shuffle_sequences"],
-        _fake_gpus=config["_fake_gpus"])
+        _fake_gpus=config["_fake_gpus"],
+        sample_max_steps=config["sample_max_steps"])
 
 SeedTrainer = build_trainer(
     name="SEED",

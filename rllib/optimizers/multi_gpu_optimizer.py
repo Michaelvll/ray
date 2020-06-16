@@ -49,7 +49,8 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
                  num_gpus=0,
                  standardize_fields=[],
                  shuffle_sequences=True,
-                 _fake_gpus=False):
+                 _fake_gpus=False,
+                 sample_max_steps=0):
         """Initialize a synchronous multi-gpu optimizer.
 
         Arguments:
@@ -71,6 +72,7 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
         """
         PolicyOptimizer.__init__(self, workers)
 
+        self.sample_max_steps = sample_max_steps
         self._stats_start_time = time.time()
         self._last_stats_time = {}
         self._last_stats_sum = {}
@@ -150,7 +152,8 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
                 samples = collect_samples(self.workers.remote_workers(),
                                           self.rollout_fragment_length,
                                           self.num_envs_per_worker,
-                                          self.train_batch_size)
+                                          self.train_batch_size,
+                                          self.sample_max_steps)
                 if samples.count > self.train_batch_size * 2:
                     logger.info(
                         "Collected more training samples than expected "
