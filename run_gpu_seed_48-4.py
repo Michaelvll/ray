@@ -12,6 +12,7 @@ tune.run(SeedTrainer, config={"env": "BreakoutNoFrameskip-v4",
                               "sample_async": True,
                               "rollout_fragment_length": 20,
                               "train_batch_size": 640,
+                              "sgd_minibatch_size": 640,
                               "sample_max_steps": 160,
                               # "eager": True,
                               # "log_level": "INFO" # for verbose
