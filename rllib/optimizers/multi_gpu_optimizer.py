@@ -191,8 +191,10 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
 
                 policy = self.policies[policy_id]
                 policy._debug_vars()
+                logger.info("policy_batch size: {}".format(batch.count))
                 tuples = policy._get_loss_inputs_dict(
                     batch, shuffle=self.shuffle_sequences)
+                logger.info("tuples: {}".format(len(tuples)))
                 data_keys = [ph for _, ph in policy._loss_inputs]
                 if policy._state_inputs:
                     state_keys = policy._state_inputs + [policy._seq_lens]
@@ -202,6 +204,8 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
                     self.optimizers[policy_id].load_data(
                         self.sess, [tuples[k] for k in data_keys],
                         [tuples[k] for k in state_keys]))
+        
+        logger.info("num loaded tuples: {}".format(num_loaded_tuples[DEFAULT_POLICY_ID]))
 
         fetches = {}
         with self.grad_timer:
