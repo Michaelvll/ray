@@ -57,7 +57,9 @@ class RemoteVectorEnv(BaseEnv):
 
         # Get and return observations for each of the ready envs
         env_ids = set()
-        for obj_id in ready:
+        # zhwu: set poll only remote_env_poll_size
+        for i in range(self.remote_env_poll_size):
+            obj_id = ready[i]
             actor = self.pending.pop(obj_id)
             env_id = self.actors.index(actor)
             env_ids.add(env_id)
