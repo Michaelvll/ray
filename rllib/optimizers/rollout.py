@@ -37,4 +37,6 @@ def collect_samples(agents, rollout_fragment_length, num_envs_per_worker,
             fut_sample2 = agent.sample.remote()
             agent_dict[fut_sample2] = agent
 
-    return SampleBatch.concat_samples(trajectories)
+    batch = SampleBatch.concat_samples(trajectories)
+    logger.info("collect batch size: {}".format(batch.count))
+    return batch

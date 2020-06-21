@@ -534,7 +534,7 @@ class RolloutWorker(EvaluatorInterface, ParallelIteratorWorker):
             steps_so_far += batch.count
             batches.append(batch)
         batch = batches[0].concat_samples(batches)
-        logger.info("Sample Batch Size: {}".format(batch.count))
+        # logger.info("Sample Batch Size: {}".format(batch.count))
 
         self.callbacks.on_sample_end(worker=self, samples=batch)
 
