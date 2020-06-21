@@ -226,6 +226,8 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
         
         sample_timesteps = samples.count
         train_timesteps = tuples_per_device * len(self.devices)
+        logger.info("Sample timesteps: {}".format(sample_timesteps))
+        logger.info("Train timesteps: {}".format(train_timesteps))
         if sample_timesteps > 0:
             self.add_stat_val("sample_throughput", sample_timesteps)
         if train_timesteps > 0:
