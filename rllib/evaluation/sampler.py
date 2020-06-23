@@ -150,7 +150,7 @@ class AsyncSampler(threading.Thread, SamplerInput):
         self.base_env = BaseEnv.to_base_env(env)
         threading.Thread.__init__(self)
         # TODO (zhwu): set the queue size (it should be similar to learner_queue_size in IMPALA)
-        self.queue = queue.Queue(5)
+        self.queue = queue.Queue(192)
         self.extra_batches = queue.Queue()
         self.metrics_queue = queue.Queue()
         self.rollout_fragment_length = rollout_fragment_length
