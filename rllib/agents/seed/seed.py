@@ -75,7 +75,8 @@ DEFAULT_CONFIG = with_common_config({
     # Use PyTorch as framework?
     "use_pytorch": False,
 
-    "sample_max_steps": 0
+    "sample_max_steps": 0,
+    "learner_sample_async": False
 })
 # __sphinx_doc_end__
 # yapf: enable
@@ -116,7 +117,8 @@ def choose_policy_optimizer(workers, config):
         standardize_fields=[],
         shuffle_sequences=config["shuffle_sequences"],
         _fake_gpus=config["_fake_gpus"],
-        sample_max_steps=config["sample_max_steps"])
+        sample_max_steps=config["sample_max_steps"],
+        learner_sample_async=config["learner_sample_async"])
 
 SeedTrainer = build_trainer(
     name="SEED",

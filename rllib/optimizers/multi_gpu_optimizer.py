@@ -9,7 +9,7 @@ from ray.rllib.evaluation.metrics import LEARNER_STATS_KEY
 from ray.rllib.policy.tf_policy import TFPolicy
 from ray.rllib.optimizers.policy_optimizer import PolicyOptimizer
 from ray.rllib.optimizers.multi_gpu_impl import LocalSyncParallelOptimizer
-from ray.rllib.optimizers.rollout import collect_samples
+from ray.rllib.optimizers.rollout import collect_samples, AsyncCollector
 from ray.rllib.utils.annotations import override
 from ray.rllib.utils.sgd import averaged
 from ray.rllib.utils.timer import TimerStat
@@ -50,7 +50,8 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
                  standardize_fields=[],
                  shuffle_sequences=True,
                  _fake_gpus=False,
-                 sample_max_steps=0):
+                 sample_max_steps=0,
+                 learner_sample_async=False):
         """Initialize a synchronous multi-gpu optimizer.
 
         Arguments:
@@ -138,6 +139,20 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
 
                 self.sess = self.workers.local_worker().tf_sess
                 self.sess.run(tf.global_variables_initializer())
+        
+        # zhwu: Add async sample collector
+        self.learner_sample_async = learner_sample_async
+        if learner_sample_async and self.workers.remote_workers():
+            self.async_collector = AsyncCollector(self.workers.remote_workers(),
+                                          self.rollout_fragment_length,
+                                          self.num_envs_per_worker,
+                                          self.train_batch_size,
+                                          self.sample_max_steps)
+            self.async_collector.start()
+            
+    def __del__(self):
+        if hasattr(self.async_collector):
+            self.async_collector.shutdown = True        
 
     @override(PolicyOptimizer)
     def step(self):
@@ -149,11 +164,14 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
 
         with self.sample_timer:
             if self.workers.remote_workers():
-                samples = collect_samples(self.workers.remote_workers(),
-                                          self.rollout_fragment_length,
-                                          self.num_envs_per_worker,
-                                          self.train_batch_size,
-                                          self.sample_max_steps)
+                if self.learner_sample_async:
+                    samples = self.async_collector.collect_samples()
+                else:
+                    samples = collect_samples(self.workers.remote_workers(),
+                                            self.rollout_fragment_length,
+                                            self.num_envs_per_worker,
+                                            self.train_batch_size,
+                                            self.sample_max_steps)
                 if samples.count > self.train_batch_size * 2:
                     logger.info(
                         "Collected more training samples than expected "
