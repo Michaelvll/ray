@@ -47,7 +47,7 @@ class AsyncCollector(threading.Thread):
     def __init__(self, agents, rollout_fragment_length, num_envs_per_worker,
                     train_batch_size, sample_max_steps=0):
         threading.Thread.__init__(self)
-        self.queue = queue.Queue()
+        self.queue = queue.Queue(8)
         self.agents = agents
         self.train_batch_size = train_batch_size
         self.sample_max_steps = sample_max_steps
