@@ -65,6 +65,7 @@ DEFAULT_CONFIG = with_common_config({
     "observation_filter": "NoFilter",
     # use fake (infinite speed) sampler for testing
     "_fake_sampler": False,
+    "_fake_collect": False,
     # Uses the sync samples optimizer instead of the multi-gpu one. This is
     # usually slower, but you might want to try it if you run into issues with
     # the default optimizer.
@@ -118,7 +119,8 @@ def choose_policy_optimizer(workers, config):
         shuffle_sequences=config["shuffle_sequences"],
         _fake_gpus=config["_fake_gpus"],
         sample_max_steps=config["sample_max_steps"],
-        learner_sample_async=config["learner_sample_async"])
+        learner_sample_async=config["learner_sample_async"],
+        _fake_collect=config["_fake_collect"])
 
 SeedTrainer = build_trainer(
     name="SEED",

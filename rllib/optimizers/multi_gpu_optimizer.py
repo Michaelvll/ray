@@ -9,7 +9,7 @@ from ray.rllib.evaluation.metrics import LEARNER_STATS_KEY
 from ray.rllib.policy.tf_policy import TFPolicy
 from ray.rllib.optimizers.policy_optimizer import PolicyOptimizer
 from ray.rllib.optimizers.multi_gpu_impl import LocalSyncParallelOptimizer
-from ray.rllib.optimizers.rollout import collect_samples, AsyncCollector
+from ray.rllib.optimizers.rollout import SampleCollector, AsyncCollector
 from ray.rllib.utils.annotations import override
 from ray.rllib.utils.sgd import averaged
 from ray.rllib.utils.timer import TimerStat
@@ -51,7 +51,8 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
                  shuffle_sequences=True,
                  _fake_gpus=False,
                  sample_max_steps=0,
-                 learner_sample_async=False):
+                 learner_sample_async=False,
+                 _fake_collect=False):
         """Initialize a synchronous multi-gpu optimizer.
 
         Arguments:
@@ -72,7 +73,8 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
                 machines).
         """
         PolicyOptimizer.__init__(self, workers)
-
+        self._fake_collect = _fake_collect
+        
         self.sample_max_steps = sample_max_steps
         self._stats_start_time = time.time()
         self._last_stats_time = {}
@@ -149,6 +151,8 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
                                           self.train_batch_size,
                                           self.sample_max_steps)
             self.async_collector.start()
+        else:
+            self.collector = SampleCollector(self._fake_collect)
             
     def __del__(self):
         if hasattr(self.async_collector):
@@ -167,7 +171,7 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
                 if self.learner_sample_async:
                     samples = self.async_collector.collect_samples()
                 else:
-                    samples = collect_samples(self.workers.remote_workers(),
+                    samples = self.collector.collect_samples(self.workers.remote_workers(),
                                             self.rollout_fragment_length,
                                             self.num_envs_per_worker,
                                             self.train_batch_size,

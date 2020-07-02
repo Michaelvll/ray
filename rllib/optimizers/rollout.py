@@ -8,38 +8,49 @@ import threading
 
 logger = logging.getLogger(__name__)
 
+class SampleCollector:
+    def __init__(self, _fake_collect=False):
+        self._fake_collect = _fake_collect
+        self.last_batch = None
 
-def collect_samples(agents, rollout_fragment_length, num_envs_per_worker,
-                    train_batch_size, sample_max_steps=0):
-    """Collects at least train_batch_size samples, never discarding any."""
+    def collect_samples(self, agents, rollout_fragment_length, num_envs_per_worker,
+                        train_batch_size, sample_max_steps=0):
+        """Collects at least train_batch_size samples, never discarding any."""
 
-    num_timesteps_so_far = 0
-    trajectories = []
-    agent_dict = {}
+        if self._fake_collect and self.last_batch is not None:
+            return self.last_batch
 
-    for agent in agents:
-        fut_sample = agent.sample.remote()
-        agent_dict[fut_sample] = agent
+        num_timesteps_so_far = 0
+        trajectories = []
+        agent_dict = {}
 
-    while agent_dict:
-        [fut_sample], _ = ray.wait(list(agent_dict))
-        agent = agent_dict.pop(fut_sample)
-        next_sample = ray_get_and_free(fut_sample)
-        num_timesteps_so_far += next_sample.count
-        trajectories.append(next_sample)
+        for agent in agents:
+            fut_sample = agent.sample.remote()
+            agent_dict[fut_sample] = agent
 
-        # Only launch more tasks if we don't already have enough pending
-        if sample_max_steps != 0:
-            pending = len(agent_dict) * sample_max_steps
-        else:
-            pending = len(
-                agent_dict) * rollout_fragment_length * num_envs_per_worker
-        
-        if num_timesteps_so_far + pending < train_batch_size:
-            fut_sample2 = agent.sample.remote()
-            agent_dict[fut_sample2] = agent
+        while agent_dict:
+            [fut_sample], _ = ray.wait(list(agent_dict))
+            agent = agent_dict.pop(fut_sample)
+            next_sample = ray_get_and_free(fut_sample)
+            num_timesteps_so_far += next_sample.count
+            trajectories.append(next_sample)
 
-    return SampleBatch.concat_samples(trajectories)
+            # Only launch more tasks if we don't already have enough pending
+            if sample_max_steps != 0:
+                pending = len(agent_dict) * sample_max_steps
+            else:
+                pending = len(
+                    agent_dict) * rollout_fragment_length * num_envs_per_worker
+            
+            if num_timesteps_so_far + pending < train_batch_size:
+                fut_sample2 = agent.sample.remote()
+                agent_dict[fut_sample2] = agent
+
+        batch = SampleBatch.concat_samples(trajectories)
+        if self.last_batch is None:
+            self.last_batch = batch
+
+        return batch
 
 
 # TODO: Use a async collector
