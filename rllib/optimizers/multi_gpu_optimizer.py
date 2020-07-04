@@ -52,7 +52,8 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
                  _fake_gpus=False,
                  sample_max_steps=0,
                  learner_sample_async=False,
-                 _fake_collect=False):
+                 _fake_collect=False,
+                 _fake_load_data=False):
         """Initialize a synchronous multi-gpu optimizer.
 
         Arguments:
@@ -74,6 +75,7 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
         """
         PolicyOptimizer.__init__(self, workers)
         self._fake_collect = _fake_collect
+        self._fake_load_data = _fake_load_data
         
         self.sample_max_steps = sample_max_steps
         self._stats_start_time = time.time()
@@ -222,10 +224,16 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
                     state_keys = policy._state_inputs + [policy._seq_lens]
                 else:
                     state_keys = []
-                num_loaded_tuples[policy_id] = (
-                    self.optimizers[policy_id].load_data(
-                        self.sess, [tuples[k] for k in data_keys],
-                        [tuples[k] for k in state_keys]))
+                if self._fake_load_data and self.last_num_loaded_tuples is not None:
+                    num_loaded_tuples[policy_id] = self.last_num_loaded_tuples[policy_id]
+                else:
+                    num_loaded_tuples[policy_id] = (
+                        self.optimizers[policy_id].load_data(
+                            self.sess, [tuples[k] for k in data_keys],
+                            [tuples[k] for k in state_keys]))
+
+            if self._fake_load_data and self.last_num_loaded_tuples is None:
+                self.last_num_loaded_tuples = num_loaded_tuples
         
         logger.info("num loaded tuples: {}".format(num_loaded_tuples[DEFAULT_POLICY_ID]))
 
