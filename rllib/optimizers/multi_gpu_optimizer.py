@@ -53,7 +53,8 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
                  sample_max_steps=0,
                  learner_sample_async=False,
                  _fake_collect=False,
-                 _fake_load_data=False):
+                 _fake_load_data=False,
+                 _fake_update=False):
         """Initialize a synchronous multi-gpu optimizer.
 
         Arguments:
@@ -77,6 +78,7 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
         self._fake_collect = _fake_collect
         self._fake_load_data = _fake_load_data
         self.last_num_loaded_tuples = None
+        self._fake_update = _fake_update
         
         self.sample_max_steps = sample_max_steps
         self._stats_start_time = time.time()
@@ -164,7 +166,7 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
     @override(PolicyOptimizer)
     def step(self):
         with self.update_weights_timer:
-            if self.workers.remote_workers():
+            if self.workers.remote_workers() and not self._fake_update:
                 weights = ray.put(self.workers.local_worker().get_weights())
                 for e in self.workers.remote_workers():
                     e.set_weights.remote(weights)

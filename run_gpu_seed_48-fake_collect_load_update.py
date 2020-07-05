@@ -16,6 +16,7 @@ tune.run(SeedTrainer, config={"env": "BreakoutNoFrameskip-v4",
                               "sample_max_steps": 640,
                               "_fake_collect": True,
                               "_fake_load_data": True,
+                              "_fake_update": True,
                               # "eager": True,
                               # "log_level": "INFO" # for verbose
                             },

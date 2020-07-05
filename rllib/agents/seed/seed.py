@@ -67,6 +67,7 @@ DEFAULT_CONFIG = with_common_config({
     "_fake_sampler": False,
     "_fake_collect": False,
     "_fake_load_data": False,
+    "_fake_update": False,
     # Uses the sync samples optimizer instead of the multi-gpu one. This is
     # usually slower, but you might want to try it if you run into issues with
     # the default optimizer.
