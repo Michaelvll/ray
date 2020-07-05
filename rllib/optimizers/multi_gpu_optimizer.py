@@ -76,6 +76,7 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
         PolicyOptimizer.__init__(self, workers)
         self._fake_collect = _fake_collect
         self._fake_load_data = _fake_load_data
+        self.last_num_loaded_tuples = None
         
         self.sample_max_steps = sample_max_steps
         self._stats_start_time = time.time()
@@ -196,7 +197,6 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
                 samples = MultiAgentBatch({
                     DEFAULT_POLICY_ID: samples
                 }, samples.count)
-
         for policy_id, policy in self.policies.items():
             if policy_id not in samples.policy_batches:
                 continue
@@ -209,32 +209,32 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
 
         num_loaded_tuples = {}
         with self.load_timer:
-            for policy_id, batch in samples.policy_batches.items():
-                if policy_id not in self.policies:
-                    continue
+            if self.last_num_loaded_tuples is None or not self._fake_load_data:
+                for policy_id, batch in samples.policy_batches.items():
+                    if policy_id not in self.policies:
+                        continue
 
-                policy = self.policies[policy_id]
-                policy._debug_vars()
-                logger.info("policy_batch size: {}".format(batch.count))
-                tuples = policy._get_loss_inputs_dict(
-                    batch, shuffle=self.shuffle_sequences)
-                logger.info("tuples: {}".format(len(tuples)))
-                data_keys = [ph for _, ph in policy._loss_inputs]
-                if policy._state_inputs:
-                    state_keys = policy._state_inputs + [policy._seq_lens]
-                else:
-                    state_keys = []
-                if self._fake_load_data and self.last_num_loaded_tuples is not None:
-                    num_loaded_tuples[policy_id] = self.last_num_loaded_tuples[policy_id]
-                else:
+                    policy = self.policies[policy_id]
+                    policy._debug_vars()
+                    logger.info("policy_batch size: {}".format(batch.count))
+                    tuples = policy._get_loss_inputs_dict(
+                        batch, shuffle=self.shuffle_sequences)
+                    logger.info("tuples: {}".format(len(tuples)))
+                    data_keys = [ph for _, ph in policy._loss_inputs]
+                    if policy._state_inputs:
+                        state_keys = policy._state_inputs + [policy._seq_lens]
+                    else:
+                        state_keys = []
                     num_loaded_tuples[policy_id] = (
                         self.optimizers[policy_id].load_data(
                             self.sess, [tuples[k] for k in data_keys],
                             [tuples[k] for k in state_keys]))
+            else:
+                num_loaded_tuples = self.last_num_loaded_tuples
 
-            if self._fake_load_data and self.last_num_loaded_tuples is None:
-                self.last_num_loaded_tuples = num_loaded_tuples
-        
+        if self._fake_load_data and self.last_num_loaded_tuples is None:
+            self.last_num_loaded_tuples = num_loaded_tuples
+
         logger.info("num loaded tuples: {}".format(num_loaded_tuples[DEFAULT_POLICY_ID]))
 
         fetches = {}
