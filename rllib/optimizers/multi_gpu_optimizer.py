@@ -54,7 +54,8 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
                  learner_sample_async=False,
                  _fake_collect=False,
                  _fake_load_data=False,
-                 _fake_update=False):
+                 _fake_update=False,
+                 _fake_optimize=False):
         """Initialize a synchronous multi-gpu optimizer.
 
         Arguments:
@@ -79,6 +80,8 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
         self._fake_load_data = _fake_load_data
         self.last_num_loaded_tuples = None
         self._fake_update = _fake_update
+        self._fake_optimize = _fake_optimize
+        self._last_optimize_results = None
         
         self.sample_max_steps = sample_max_steps
         self._stats_start_time = time.time()
@@ -211,57 +214,60 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
 
         num_loaded_tuples = {}
         with self.load_timer:
-            if self.last_num_loaded_tuples is None or not self._fake_load_data:
-                for policy_id, batch in samples.policy_batches.items():
-                    if policy_id not in self.policies:
-                        continue
+            if self._last_optimize_results or not self._fake_optimize:
+                if self.last_num_loaded_tuples is None or not self._fake_load_data:
+                    for policy_id, batch in samples.policy_batches.items():
+                        if policy_id not in self.policies:
+                            continue
 
-                    policy = self.policies[policy_id]
-                    policy._debug_vars()
-                    logger.info("policy_batch size: {}".format(batch.count))
-                    tuples = policy._get_loss_inputs_dict(
-                        batch, shuffle=self.shuffle_sequences)
-                    logger.info("tuples: {}".format(len(tuples)))
-                    data_keys = [ph for _, ph in policy._loss_inputs]
-                    if policy._state_inputs:
-                        state_keys = policy._state_inputs + [policy._seq_lens]
-                    else:
-                        state_keys = []
-                    num_loaded_tuples[policy_id] = (
-                        self.optimizers[policy_id].load_data(
-                            self.sess, [tuples[k] for k in data_keys],
-                            [tuples[k] for k in state_keys]))
-            else:
-                num_loaded_tuples = self.last_num_loaded_tuples
+                        policy = self.policies[policy_id]
+                        policy._debug_vars()
+                        logger.info("policy_batch size: {}".format(batch.count))
+                        tuples = policy._get_loss_inputs_dict(
+                            batch, shuffle=self.shuffle_sequences)
+                        logger.info("tuples: {}".format(len(tuples)))
+                        data_keys = [ph for _, ph in policy._loss_inputs]
+                        if policy._state_inputs:
+                            state_keys = policy._state_inputs + [policy._seq_lens]
+                        else:
+                            state_keys = []
+                        num_loaded_tuples[policy_id] = (
+                            self.optimizers[policy_id].load_data(
+                                self.sess, [tuples[k] for k in data_keys],
+                                [tuples[k] for k in state_keys]))
+                else:
+                    num_loaded_tuples = self.last_num_loaded_tuples
 
         if self._fake_load_data and self.last_num_loaded_tuples is None:
             self.last_num_loaded_tuples = num_loaded_tuples
 
-        logger.info("num loaded tuples: {}".format(num_loaded_tuples[DEFAULT_POLICY_ID]))
+        if not self._fake_optimize:
+            logger.info("num loaded tuples: {}".format(num_loaded_tuples[DEFAULT_POLICY_ID]))
 
         fetches = {}
         with self.grad_timer:
-            for policy_id, tuples_per_device in num_loaded_tuples.items():
-                optimizer = self.optimizers[policy_id]
-                num_batches = max(
-                    1,
-                    int(tuples_per_device) // int(self.per_device_batch_size))
-                logger.debug("== sgd epochs for {} ==".format(policy_id))
-                for i in range(self.num_sgd_iter):
-                    iter_extra_fetches = defaultdict(list)
-                    permutation = np.random.permutation(num_batches)
-                    for batch_index in range(num_batches):
-                        batch_fetches = optimizer.optimize(
-                            self.sess, permutation[batch_index] *
-                            self.per_device_batch_size)
-                        for k, v in batch_fetches[LEARNER_STATS_KEY].items():
-                            iter_extra_fetches[k].append(v)
-                    logger.debug("{} {}".format(i,
-                                                averaged(iter_extra_fetches)))
-                fetches[policy_id] = averaged(iter_extra_fetches)
+            if self._last_optimize_results or not self._fake_optimize:
+                for policy_id, tuples_per_device in num_loaded_tuples.items():
+                    optimizer = self.optimizers[policy_id]
+                    num_batches = max(
+                        1,
+                        int(tuples_per_device) // int(self.per_device_batch_size))
+                    logger.debug("== sgd epochs for {} ==".format(policy_id))
+                    for i in range(self.num_sgd_iter):
+                        iter_extra_fetches = defaultdict(list)
+                        permutation = np.random.permutation(num_batches)
+                        for batch_index in range(num_batches):
+                            batch_fetches = optimizer.optimize(
+                                self.sess, permutation[batch_index] *
+                                self.per_device_batch_size)
+                            for k, v in batch_fetches[LEARNER_STATS_KEY].items():
+                                iter_extra_fetches[k].append(v)
+                        logger.debug("{} {}".format(i,
+                                                    averaged(iter_extra_fetches)))
+                    fetches[policy_id] = averaged(iter_extra_fetches)
         
         sample_timesteps = samples.count
-        train_timesteps = tuples_per_device * len(self.devices)
+        train_timesteps = tuples_per_device * len(self.devices) if not self._fake_optimize else 0
         logger.info("Sample timesteps: {}".format(sample_timesteps))
         logger.info("Train timesteps: {}".format(train_timesteps))
         if sample_timesteps > 0:
@@ -271,6 +277,10 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
 
         self.num_steps_sampled += sample_timesteps
         self.num_steps_trained += train_timesteps
+        if self._fake_optimize and self._last_optimize_results is None:
+            self._last_optimize_results = fetches
+        else:
+            fetches = self._last_optimize_results
         self.learner_stats = fetches
         return fetches
 
