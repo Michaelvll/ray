@@ -214,29 +214,28 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
 
         num_loaded_tuples = {}
         with self.load_timer:
-            if self._last_optimize_results or not self._fake_optimize:
-                if self.last_num_loaded_tuples is None or not self._fake_load_data:
-                    for policy_id, batch in samples.policy_batches.items():
-                        if policy_id not in self.policies:
-                            continue
+            if self.last_num_loaded_tuples is None or not self._fake_load_data:
+                for policy_id, batch in samples.policy_batches.items():
+                    if policy_id not in self.policies:
+                        continue
 
-                        policy = self.policies[policy_id]
-                        policy._debug_vars()
-                        logger.info("policy_batch size: {}".format(batch.count))
-                        tuples = policy._get_loss_inputs_dict(
-                            batch, shuffle=self.shuffle_sequences)
-                        logger.info("tuples: {}".format(len(tuples)))
-                        data_keys = [ph for _, ph in policy._loss_inputs]
-                        if policy._state_inputs:
-                            state_keys = policy._state_inputs + [policy._seq_lens]
-                        else:
-                            state_keys = []
-                        num_loaded_tuples[policy_id] = (
-                            self.optimizers[policy_id].load_data(
-                                self.sess, [tuples[k] for k in data_keys],
-                                [tuples[k] for k in state_keys]))
-                else:
-                    num_loaded_tuples = self.last_num_loaded_tuples
+                    policy = self.policies[policy_id]
+                    policy._debug_vars()
+                    logger.info("policy_batch size: {}".format(batch.count))
+                    tuples = policy._get_loss_inputs_dict(
+                        batch, shuffle=self.shuffle_sequences)
+                    logger.info("tuples: {}".format(len(tuples)))
+                    data_keys = [ph for _, ph in policy._loss_inputs]
+                    if policy._state_inputs:
+                        state_keys = policy._state_inputs + [policy._seq_lens]
+                    else:
+                        state_keys = []
+                    num_loaded_tuples[policy_id] = (
+                        self.optimizers[policy_id].load_data(
+                            self.sess, [tuples[k] for k in data_keys],
+                            [tuples[k] for k in state_keys]))
+            else:
+                num_loaded_tuples = self.last_num_loaded_tuples
 
         if self._fake_load_data and self.last_num_loaded_tuples is None:
             self.last_num_loaded_tuples = num_loaded_tuples
@@ -246,7 +245,7 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
 
         fetches = {}
         with self.grad_timer:
-            if self._last_optimize_results or not self._fake_optimize:
+            if self._last_optimize_results is None or not self._fake_optimize:
                 for policy_id, tuples_per_device in num_loaded_tuples.items():
                     optimizer = self.optimizers[policy_id]
                     num_batches = max(
@@ -277,10 +276,11 @@ class LocalMultiGPUOptimizer(PolicyOptimizer):
 
         self.num_steps_sampled += sample_timesteps
         self.num_steps_trained += train_timesteps
-        if self._fake_optimize and self._last_optimize_results is None:
-            self._last_optimize_results = fetches
-        else:
-            fetches = self._last_optimize_results
+        if self._fake_optimize:
+            if self._last_optimize_results is None:
+                self._last_optimize_results = fetches
+            else:
+                fetches = self._last_optimize_results
         self.learner_stats = fetches
         return fetches
 
